@@ -1,25 +1,13 @@
 import React, { useState } from 'react';
-import {
-  View, TextInput, Text, StyleSheet, TouchableOpacity
-} from 'react-native';
+import { View, TextInput, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 
-/**
- * CustomInput — Input reutilizable con ícono, label y estado de error.
- * @param {string} label - Etiqueta del campo
- * @param {string} icon - Nombre del ícono Material
- * @param {string} error - Mensaje de error (opcional)
- * @param {boolean} secureTextEntry - Para contraseñas
- */
 export default function CustomInput({
-  label,
-  icon,
-  error,
-  secureTextEntry = false,
-  style,
-  ...props
+  label, icon, error, secureTextEntry = false, style, ...props
 }) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const [isFocused, setIsFocused] = useState(false);
   const [isVisible, setIsVisible] = useState(!secureTextEntry);
 
@@ -52,11 +40,7 @@ export default function CustomInput({
         />
         {secureTextEntry && (
           <TouchableOpacity onPress={() => setIsVisible(!isVisible)}>
-            <MaterialIcons
-              name={isVisible ? 'visibility' : 'visibility-off'}
-              size={20}
-              color={colors.textSecondary}
-            />
+            <MaterialIcons name={isVisible ? 'visibility' : 'visibility-off'} size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
@@ -70,41 +54,12 @@ export default function CustomInput({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: 8,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    height: 52,
-  },
-  icon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.textPrimary,
-  },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  errorText: {
-    fontSize: 12,
-    color: colors.danger,
-    marginLeft: 4,
-  },
+const makeStyles = (colors) => StyleSheet.create({
+  container: { marginBottom: 16 },
+  label: { fontSize: 14, fontWeight: '600', color: colors.textPrimary, marginBottom: 8 },
+  inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, height: 52 },
+  icon: { marginRight: 10 },
+  input: { flex: 1, fontSize: 15, color: colors.textPrimary },
+  errorContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+  errorText: { fontSize: 12, color: colors.danger, marginLeft: 4 },
 });

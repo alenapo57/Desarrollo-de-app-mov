@@ -50,9 +50,12 @@ export const validateLoginForm = ({ email, password }) => {
 /**
  * Valida el formulario de movimiento.
  */
-export const validateMovimientoForm = ({ tipo, categoria, monto, fecha }) => {
+export const validateMovimientoForm = ({ tipo, categoria, descripcion, monto, fecha }) => {
   if (!isNotEmpty(tipo)) return { valid: false, error: 'El tipo es obligatorio.' };
   if (!isNotEmpty(categoria)) return { valid: false, error: 'La categoría es obligatoria.' };
+  if (categoria === 'Otros' && !isNotEmpty(descripcion)) {
+    return { valid: false, error: 'La descripción es obligatoria cuando la categoría es "Otros".' };
+  }
   if (!isValidAmount(monto)) return { valid: false, error: 'El monto debe ser un número mayor a 0.' };
   if (!isNotEmpty(fecha)) return { valid: false, error: 'La fecha es obligatoria.' };
   return { valid: true, error: null };

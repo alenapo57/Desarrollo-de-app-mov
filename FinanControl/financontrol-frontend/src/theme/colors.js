@@ -1,33 +1,38 @@
-/**
- * Paleta de colores centralizada de FinanControl.
- * Importar este archivo en cualquier componente o pantalla
- * en lugar de hardcodear valores hexadecimales.
- */
-export const colors = {
-  // Marca
+export const lightColors = {
   primary: '#2563EB',
   primaryDark: '#1D4ED8',
   secondary: '#0EA5E9',
-
-  // Estados
   success: '#22C55E',
   danger: '#EF4444',
   warning: '#F59E0B',
-
-  // Superficies
   background: '#F8FAFC',
   surface: '#FFFFFF',
   border: '#E2E8F0',
-
-  // Texto
   textPrimary: '#1E293B',
   textSecondary: '#64748B',
   textWhite: '#FFFFFF',
-
-  // Movimientos
-  income: '#22C55E',   // verde para ingresos
-  expense: '#EF4444',  // rojo para gastos
-
-  // Overlay / sombras
+  income: '#22C55E',
+  expense: '#EF4444',
   shadow: '#000000',
 };
+
+export const darkColors = {
+  primary: '#3B82F6',
+  primaryDark: '#2563EB',
+  secondary: '#0EA5E9',
+  success: '#22C55E',
+  danger: '#EF4444',
+  warning: '#F59E0B',
+  background: '#0F172A',
+  surface: '#1E293B',
+  border: '#334155',
+  textPrimary: '#F1F5F9',
+  textSecondary: '#94A3B8',
+  textWhite: '#FFFFFF',
+  income: '#22C55E',
+  expense: '#EF4444',
+  shadow: '#000000',
+};
+
+// Export por defecto para compatibilidad con archivos existentes
+export const colors = lightColors;

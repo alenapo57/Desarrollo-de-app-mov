@@ -12,15 +12,23 @@
       "backgroundColor": "#2563EB"
     },
     "android": {
+      "newArchEnabled": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#2563EB"
       },
-      "newArchEnabled": false
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES"
+      ]
     },
     "ios": {
+      "newArchEnabled": false,
       "supportsTablet": true,
-      "newArchEnabled": false
+      "infoPlist": {
+    "NSPhotoLibraryUsageDescription": "Necesitamos acceso a tu galería para cambiar tu foto de perfil."
+  }
     },
     "plugins": [
       "expo-sqlite"
@@ -34,14 +42,18 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/datetimepicker": "8.4.4",
+    "@react-navigation/bottom-tabs": "^6.6.1",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/stack": "^6.4.1",
     "expo": "~54.0.35",
+    "expo-image-picker": "~17.0.11",
     "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.28.0",
-    "react-native-safe-area-context": "~5.6.0"
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0"
   }
 }

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 import { formatCurrency, formatDate } from '../utils/helpers';
 
 const CATEGORY_ICONS = {
@@ -11,6 +11,7 @@ const CATEGORY_ICONS = {
   'Educación': 'school',
   'Entretenimiento': 'movie',
   'Servicios': 'home',
+  'Combustible': 'local-gas-station',
   'Ropa': 'checkroom',
   'Sueldo': 'payments',
   'Freelance': 'computer',
@@ -18,48 +19,27 @@ const CATEGORY_ICONS = {
   'Otros': 'attach-money',
 };
 
-/**
- * MovimientoCard — Card de transacción reutilizable.
- * @param {object} movimiento - Datos del movimiento
- * @param {function} onEdit - Callback editar
- * @param {function} onDelete - Callback eliminar
- */
 export default function MovimientoCard({ movimiento, onEdit, onDelete }) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { tipo, categoria, descripcion, monto, fecha } = movimiento;
   const isIngreso = tipo === 'Ingreso';
   const iconName = CATEGORY_ICONS[categoria] || 'attach-money';
 
   return (
     <View style={styles.card}>
-      {/* Ícono categoría */}
       <View style={[styles.iconContainer, {
-        backgroundColor: isIngreso
-          ? 'rgba(34,197,94,0.12)'
-          : 'rgba(239,68,68,0.12)'
+        backgroundColor: isIngreso ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)'
       }]}>
-        <MaterialIcons
-          name={iconName}
-          size={22}
-          color={isIngreso ? colors.income : colors.expense}
-        />
+        <MaterialIcons name={iconName} size={22} color={isIngreso ? colors.income : colors.expense} />
       </View>
-
-      {/* Info */}
       <View style={styles.info}>
         <Text style={styles.categoria}>{categoria}</Text>
-        {descripcion ? (
-          <Text style={styles.descripcion} numberOfLines={1}>
-            {descripcion}
-          </Text>
-        ) : null}
+        {descripcion ? <Text style={styles.descripcion} numberOfLines={1}>{descripcion}</Text> : null}
         <Text style={styles.fecha}>{formatDate(fecha)}</Text>
       </View>
-
-      {/* Monto y acciones */}
       <View style={styles.right}>
-        <Text style={[styles.monto, {
-          color: isIngreso ? colors.income : colors.expense
-        }]}>
+        <Text style={[styles.monto, { color: isIngreso ? colors.income : colors.expense }]}>
           {isIngreso ? '+' : '-'}{formatCurrency(monto)}
         </Text>
         <View style={styles.actions}>
@@ -79,7 +59,7 @@ export default function MovimientoCard({ movimiento, onEdit, onDelete }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -101,37 +81,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  info: {
-    flex: 1,
-  },
-  categoria: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  descripcion: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  fecha: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 3,
-  },
-  right: {
-    alignItems: 'flex-end',
-  },
-  monto: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  actions: {
-    flexDirection: 'row',
-    marginTop: 6,
-  },
-  actionBtn: {
-    padding: 4,
-    marginLeft: 4,
-  },
+  info: { flex: 1 },
+  categoria: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
+  descripcion: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+  fecha: { fontSize: 12, color: colors.textSecondary, marginTop: 3 },
+  right: { alignItems: 'flex-end' },
+  monto: { fontSize: 15, fontWeight: '700' },
+  actions: { flexDirection: 'row', marginTop: 6 },
+  actionBtn: { padding: 4, marginLeft: 4 },
 });

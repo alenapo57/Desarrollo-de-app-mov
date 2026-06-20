@@ -1,3 +1,9 @@
+//este archivo define la navegación principal de la aplicación utilizando un Stack Navigator.
+//Incluye un menú lateral (drawer) personalizado que se muestra al hacer clic en el ícono de menú en el encabezado. 
+//El menú lateral contiene enlaces a las pantallas principales (Inicio, Movimientos, Agregar Movimiento y Perfil) y una opción para cerrar sesión. 
+//El componente DrawerNavigator recibe el usuario autenticado y una función onLogout como props, 
+//que se pasan a las pantallas correspondientes para manejar la visualización de datos y el proceso de cierre de sesión.
+
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
@@ -116,6 +122,7 @@ export default function DrawerNavigator({ usuario, onLogout }) {
           text: 'Cerrar Sesión',
           style: 'destructive',
           onPress: async () => {
+            await AsyncStorage.removeItem('token');
             await AsyncStorage.removeItem('usuario');
             onLogout();
           },

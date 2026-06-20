@@ -5,12 +5,13 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 import MovimientoCard from '../components/MovimientoCard';
 import { getResumenFinanciero, getRecentMovimientos } from '../services/movimientoService';
 import { formatCurrency } from '../utils/helpers';
 
-function SummaryCard({ title, amount, icon, color, background }) {
+function SummaryCard({ title, amount, icon, color, background, colors }) {
+  const styles = makeStyles(colors);
   return (
     <View style={[styles.summaryCard, { borderLeftColor: color }]}>
       <View style={[styles.summaryIconContainer, { backgroundColor: background }]}>
@@ -23,22 +24,39 @@ function SummaryCard({ title, amount, icon, color, background }) {
 }
 
 export default function HomeScreen({ navigation, usuario }) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+
   const [resumen, setResumen] = useState({ saldo: 0, ingresos: 0, gastos: 0 });
   const [recientes, setRecientes] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
-      loadData();
+      let isActive = true;
+
+      const fetchData = async () => {
+        const [resumenResult, recientesResult] = await Promise.all([
+          getResumenFinanciero(),
+          getRecentMovimientos(),
+        ]);
+        if (isActive) {
+          if (resumenResult.success) setResumen(resumenResult.data);
+          if (recientesResult.success) setRecientes(recientesResult.data);
+        }
+      };
+
+      fetchData();
+
+      return () => { isActive = false; };
     }, [])
   );
 
   const loadData = async () => {
     const [resumenResult, recientesResult] = await Promise.all([
-      getResumenFinanciero(usuario.id),
-      getRecentMovimientos(usuario.id, 5),
+      getResumenFinanciero(),
+      getRecentMovimientos(),
     ]);
-
     if (resumenResult.success) setResumen(resumenResult.data);
     if (recientesResult.success) setRecientes(recientesResult.data);
   };
@@ -54,12 +72,6 @@ export default function HomeScreen({ navigation, usuario }) {
     if (hour < 12) return 'Buenos días';
     if (hour < 18) return 'Buenas tardes';
     return 'Buenas noches';
-  };
-
-  const getSaldoColor = () => {
-    if (resumen.saldo > 0) return colors.income;
-    if (resumen.saldo < 0) return colors.expense;
-    return colors.textSecondary;
   };
 
   return (
@@ -93,7 +105,7 @@ export default function HomeScreen({ navigation, usuario }) {
             <MaterialIcons name="account-balance-wallet" size={16} color={colors.textWhite} />
           </View>
         </View>
-        <Text style={[styles.saldoAmount, { color: getSaldoColor() }]}>
+        <Text style={styles.saldoAmount}>
           {formatCurrency(resumen.saldo)}
         </Text>
         <Text style={styles.saldoHint}>
@@ -111,6 +123,7 @@ export default function HomeScreen({ navigation, usuario }) {
           icon="trending-up"
           color={colors.income}
           background="rgba(34,197,94,0.1)"
+          colors={colors}
         />
         <SummaryCard
           title="Gastos"
@@ -118,6 +131,7 @@ export default function HomeScreen({ navigation, usuario }) {
           icon="trending-down"
           color={colors.expense}
           background="rgba(239,68,68,0.1)"
+          colors={colors}
         />
       </View>
 
@@ -136,7 +150,7 @@ export default function HomeScreen({ navigation, usuario }) {
             <Text style={styles.emptyText}>No hay movimientos todavía</Text>
             <TouchableOpacity
               style={styles.emptyButton}
-              onPress={() => navigation.navigate('AddMovimiento')}
+              onPress={() => navigation.navigate('Agregar')}
             >
               <Text style={styles.emptyButtonText}>Agregar primero</Text>
             </TouchableOpacity>
@@ -146,52 +160,16 @@ export default function HomeScreen({ navigation, usuario }) {
             <MovimientoCard
               key={item.id}
               movimiento={item}
+              colors={colors}
             />
           ))
         )}
       </View>
-
-      {/* Accesos rápidos */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Accesos Rápidos</Text>
-        <View style={styles.quickActions}>
-          <TouchableOpacity
-            style={styles.quickAction}
-            onPress={() => navigation.navigate('AddMovimiento')}
-          >
-            <View style={[styles.quickActionIcon, { backgroundColor: 'rgba(37,99,235,0.1)' }]}>
-              <MaterialIcons name="add-circle" size={26} color={colors.primary} />
-            </View>
-            <Text style={styles.quickActionText}>Agregar</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.quickAction}
-            onPress={() => navigation.navigate('Movimientos')}
-          >
-            <View style={[styles.quickActionIcon, { backgroundColor: 'rgba(14,165,233,0.1)' }]}>
-              <MaterialIcons name="list" size={26} color={colors.secondary} />
-            </View>
-            <Text style={styles.quickActionText}>Movimientos</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.quickAction}
-            onPress={() => navigation.navigate('Profile')}
-          >
-            <View style={[styles.quickActionIcon, { backgroundColor: 'rgba(34,197,94,0.1)' }]}>
-              <MaterialIcons name="person" size={26} color={colors.income} />
-            </View>
-            <Text style={styles.quickActionText}>Perfil</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -330,34 +308,5 @@ const styles = StyleSheet.create({
     color: colors.textWhite,
     fontWeight: '600',
     fontSize: 14,
-  },
-  quickActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  quickAction: {
-    flex: 1,
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    paddingVertical: 16,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  quickActionText: {
-    fontSize: 12,
-    color: colors.textPrimary,
-    fontWeight: '600',
   },
 });

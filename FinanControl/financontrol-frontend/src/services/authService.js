@@ -1,78 +1,74 @@
-import { getDatabase } from '../database/database';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from './api';
 
 /**
- * Registra un nuevo usuario.
- * Retorna { success: boolean, user?: object, error?: string }
+ * Registra un nuevo usuario via FastAPI.
  */
 export const registerUser = async ({ nombre, email, password }) => {
   try {
-    const db = await getDatabase();
-
-    // Verificar si el email ya existe
-    const existing = await db.getFirstAsync(
-      'SELECT id FROM usuarios WHERE email = ?',
-      [email.toLowerCase().trim()]
-    );
-
-    if (existing) {
-      return { success: false, error: 'Ya existe una cuenta con ese email.' };
-    }
-
-    // Insertar usuario
-    const result = await db.runAsync(
-      'INSERT INTO usuarios (nombre, email, password) VALUES (?, ?, ?)',
-      [nombre.trim(), email.toLowerCase().trim(), password]
-    );
-
-    const newUser = await db.getFirstAsync(
-      'SELECT id, nombre, email FROM usuarios WHERE id = ?',
-      [result.lastInsertRowId]
-    );
-
-    return { success: true, user: newUser };
+    const data = await api.post('/usuarios/register', { nombre, email, password });
+    await AsyncStorage.setItem('token', data.access_token);
+    await AsyncStorage.setItem('usuario', JSON.stringify(data.usuario));
+    return { success: true, user: data.usuario };
   } catch (error) {
-    console.error('registerUser error:', error);
-    return { success: false, error: 'Error al registrar usuario.' };
+    return { success: false, error: error.message };
   }
 };
 
 /**
- * Autentica un usuario con email y contraseña.
- * Retorna { success: boolean, user?: object, error?: string }
+ * Autentica un usuario via FastAPI.
  */
 export const loginUser = async ({ email, password }) => {
   try {
-    const db = await getDatabase();
-
-    const user = await db.getFirstAsync(
-      'SELECT id, nombre, email FROM usuarios WHERE email = ? AND password = ?',
-      [email.toLowerCase().trim(), password]
-    );
-
-    if (!user) {
-      return { success: false, error: 'Email o contraseña incorrectos.' };
-    }
-
-    return { success: true, user };
+    const data = await api.post('/usuarios/login', { email, password });
+    await AsyncStorage.setItem('token', data.access_token);
+    await AsyncStorage.setItem('usuario', JSON.stringify(data.usuario));
+    return { success: true, user: data.usuario };
   } catch (error) {
-    console.error('loginUser error:', error);
-    return { success: false, error: 'Error al iniciar sesión.' };
+    return { success: false, error: error.message };
   }
 };
 
 /**
- * Obtiene un usuario por ID.
+ * Cierra sesión limpiando AsyncStorage.
  */
-export const getUserById = async (id) => {
+export const logoutUser = async () => {
+  await AsyncStorage.removeItem('token');
+  await AsyncStorage.removeItem('usuario');
+};
+
+/**
+ * Actualiza la foto de perfil del usuario.
+ */
+export const updateFotoPerfil = async (fotoPerfil) => {
   try {
-    const db = await getDatabase();
-    const user = await db.getFirstAsync(
-      'SELECT id, nombre, email FROM usuarios WHERE id = ?',
-      [id]
-    );
-    return user || null;
+    const data = await api.put('/usuarios/foto', { foto_perfil: fotoPerfil });
+    const stored = await AsyncStorage.getItem('usuario');
+    if (stored) {
+      const usuario = JSON.parse(stored);
+      usuario.foto_perfil = fotoPerfil;
+      await AsyncStorage.setItem('usuario', JSON.stringify(usuario));
+    }
+    return { success: true, data };
   } catch (error) {
-    console.error('getUserById error:', error);
-    return null;
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Actualiza el nombre del usuario.
+ */
+export const updateNombre = async (nombre) => {
+  try {
+    const data = await api.put('/usuarios/nombre', { nombre });
+    const stored = await AsyncStorage.getItem('usuario');
+    if (stored) {
+      const usuario = JSON.parse(stored);
+      usuario.nombre = nombre;
+      await AsyncStorage.setItem('usuario', JSON.stringify(usuario));
+    }
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 };
