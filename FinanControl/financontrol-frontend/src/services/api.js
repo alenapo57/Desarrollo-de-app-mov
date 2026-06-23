@@ -1,6 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'http://192.168.101.5:8000';
+// Reemplaza con la URL de tu servidor local
+//const BASE_URL = 'http://192.168.101.5:8000'; 
+// Reemplaza con tu URL de ngrok (ej: https://xxxx-xxx-xxx.ngrok.app)
+const BASE_URL = 'https://flypaper-deport-overcome.ngrok-free.dev';
 
 /**
  * Cliente HTTP centralizado para FinanControl API.
