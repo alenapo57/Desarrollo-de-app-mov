@@ -110,7 +110,7 @@ export default function HomeScreen({ navigation, usuario }) {
         </Text>
         <Text style={styles.saldoHint}>
           {resumen.saldo >= 0
-            ? 'Vas bien, seguí así 💪'
+            ? 'Vas bien, seguí así '
             : 'Tus gastos superan tus ingresos'}
         </Text>
       </View>
