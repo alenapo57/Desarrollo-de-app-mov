@@ -11,6 +11,7 @@ import { getResumenFinanciero } from '../services/movimientoService';
 import { updateFotoPerfil, updateNombre } from '../services/authService';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
+import DarkModeToggle from '../components/DarkModeToggle';
 
 function ProfileOption({ icon, label, sublabel, onPress, color, showArrow = true, colors, styles }) {
   return (
@@ -196,9 +197,7 @@ export default function ProfileScreen({ navigation, usuario, onLogout }) {
               <Text style={styles.optionLabel}>Modo Oscuro</Text>
               <Text style={styles.optionSublabel}>{isDark ? 'Activado' : 'Desactivado'}</Text>
             </View>
-            <TouchableOpacity onPress={toggleTheme} style={[styles.toggleBtn, { backgroundColor: isDark ? colors.primary : colors.border }]} activeOpacity={0.8}>
-              <View style={[styles.toggleCircle, { transform: [{ translateX: isDark ? 20 : 2 }] }]} />
-            </TouchableOpacity>
+            <DarkModeToggle isDark={isDark} onToggle={toggleTheme} />
           </View>
         </View>
       </View>
@@ -251,8 +250,6 @@ const makeStyles = (colors) => StyleSheet.create({
   editActions: { flexDirection: 'row', alignItems: 'center' },
   editActionBtn: { padding: 4 },
   optionDivider: { height: 1, backgroundColor: colors.border, marginLeft: 70 },
-  toggleBtn: { width: 44, height: 26, borderRadius: 13, justifyContent: 'center', padding: 2 },
-  toggleCircle: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.textWhite },
   footer: { alignItems: 'center', paddingTop: 16 },
   footerText: { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
   footerSubtext: { fontSize: 12, color: colors.textSecondary, marginTop: 4 },

@@ -5,20 +5,26 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 import MovimientoCard from '../components/MovimientoCard';
+import { SkeletonHome } from '../components/SkeletonLoader';
+import EmptyState from '../components/EmptyState';
 import { getResumenFinanciero, getRecentMovimientos } from '../services/movimientoService';
 import { formatCurrency } from '../utils/helpers';
+import { useCountUp } from '../utils/useCountUp';
 
 function SummaryCard({ title, amount, icon, color, background, colors }) {
   const styles = makeStyles(colors);
+  const animatedAmount = useCountUp(amount);
+
   return (
     <View style={[styles.summaryCard, { borderLeftColor: color }]}>
       <View style={[styles.summaryIconContainer, { backgroundColor: background }]}>
         <MaterialIcons name={icon} size={22} color={color} />
       </View>
       <Text style={styles.summaryTitle}>{title}</Text>
-      <Text style={[styles.summaryAmount, { color }]}>{formatCurrency(amount)}</Text>
+      <Text style={[styles.summaryAmount, { color }]}>{formatCurrency(animatedAmount)}</Text>
     </View>
   );
 }
@@ -30,6 +36,9 @@ export default function HomeScreen({ navigation, usuario }) {
   const [resumen, setResumen] = useState({ saldo: 0, ingresos: 0, gastos: 0 });
   const [recientes, setRecientes] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const animatedSaldo = useCountUp(resumen.saldo);
 
   useFocusEffect(
     useCallback(() => {
@@ -43,6 +52,7 @@ export default function HomeScreen({ navigation, usuario }) {
         if (isActive) {
           if (resumenResult.success) setResumen(resumenResult.data);
           if (recientesResult.success) setRecientes(recientesResult.data);
+          setLoading(false);
         }
       };
 
@@ -74,6 +84,10 @@ export default function HomeScreen({ navigation, usuario }) {
     return 'Buenas noches';
   };
 
+  if (loading) {
+    return <SkeletonHome />;
+  }
+
   return (
     <ScrollView
       style={styles.container}
@@ -97,22 +111,29 @@ export default function HomeScreen({ navigation, usuario }) {
         </Text>
       </View>
 
-      {/* Card principal — Saldo */}
-      <View style={styles.saldoCard}>
-        <View style={styles.saldoHeader}>
-          <Text style={styles.saldoLabel}>Saldo Actual</Text>
-          <View style={styles.saldoBadge}>
-            <MaterialIcons name="account-balance-wallet" size={16} color={colors.textWhite} />
+      {/* Card principal — Saldo (con gradiente) */}
+      <View style={styles.saldoCardShadow}>
+        <LinearGradient
+          colors={[colors.primary, colors.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.saldoCard}
+        >
+          <View style={styles.saldoHeader}>
+            <Text style={styles.saldoLabel}>Saldo Actual</Text>
+            <View style={styles.saldoBadge}>
+              <MaterialIcons name="account-balance-wallet" size={16} color={colors.textWhite} />
+            </View>
           </View>
-        </View>
-        <Text style={styles.saldoAmount}>
-          {formatCurrency(resumen.saldo)}
-        </Text>
-        <Text style={styles.saldoHint}>
-          {resumen.saldo >= 0
-            ? 'Vas bien, seguí así '
-            : 'Tus gastos superan tus ingresos'}
-        </Text>
+          <Text style={styles.saldoAmount}>
+            {formatCurrency(animatedSaldo)}
+          </Text>
+          <Text style={styles.saldoHint}>
+            {resumen.saldo >= 0
+              ? 'Vas bien, seguí así '
+              : 'Tus gastos superan tus ingresos'}
+          </Text>
+        </LinearGradient>
       </View>
 
       {/* Cards de resumen */}
@@ -145,16 +166,13 @@ export default function HomeScreen({ navigation, usuario }) {
         </View>
 
         {recientes.length === 0 ? (
-          <View style={styles.emptySection}>
-            <MaterialIcons name="receipt-long" size={48} color={colors.border} />
-            <Text style={styles.emptyText}>No hay movimientos todavía</Text>
-            <TouchableOpacity
-              style={styles.emptyButton}
-              onPress={() => navigation.navigate('Agregar')}
-            >
-              <Text style={styles.emptyButtonText}>Agregar primero</Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState
+            icon="receipt-long"
+            title="No hay movimientos todavía"
+            subtitle="Registrá tu primer ingreso o gasto para empezar a ver tu resumen."
+            actionLabel="Agregar primero"
+            onAction={() => navigation.navigate('Agregar')}
+          />
         ) : (
           recientes.map((item) => (
             <MovimientoCard
@@ -192,16 +210,19 @@ const makeStyles = (colors) => StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
-  saldoCard: {
-    backgroundColor: colors.primary,
+  saldoCardShadow: {
     borderRadius: 20,
-    padding: 24,
     marginBottom: 16,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 12,
     elevation: 6,
+  },
+  saldoCard: {
+    borderRadius: 20,
+    padding: 24,
+    overflow: 'hidden',
   },
   saldoHeader: {
     flexDirection: 'row',
@@ -285,28 +306,5 @@ const makeStyles = (colors) => StyleSheet.create({
     fontSize: 14,
     color: colors.primary,
     fontWeight: '600',
-  },
-  emptySection: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-  },
-  emptyText: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    marginTop: 12,
-    marginBottom: 16,
-  },
-  emptyButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  emptyButtonText: {
-    color: colors.textWhite,
-    fontWeight: '600',
-    fontSize: 14,
   },
 });
