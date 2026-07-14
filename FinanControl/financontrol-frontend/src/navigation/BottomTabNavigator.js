@@ -1,10 +1,10 @@
 import React from 'react';
-import { Alert } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
+import TabScreenWrapper from '../components/TabScreenWrapper';
+import { logoutUser } from '../services/authService';
 
 import HomeScreen from '../screens/HomeScreen';
 import MovimientosScreen from '../screens/MovimientosScreen';
@@ -56,18 +56,9 @@ export default function BottomTabNavigator({ usuario, onLogout }) {
   const headerBg = isDark ? colors.surface : colors.primary;
   const headerTint = isDark ? colors.textPrimary : colors.textWhite;
 
-  const handleLogout = () => {
-    Alert.alert('Cerrar Sesión', '¿Estás seguro que querés cerrar sesión?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Cerrar Sesión', style: 'destructive',
-        onPress: async () => {
-          await AsyncStorage.removeItem('token');
-          await AsyncStorage.removeItem('usuario');
-          onLogout();
-        },
-      },
-    ]);
+  const handleLogout = async () => {
+    await logoutUser();
+    onLogout();
   };
 
   return (
@@ -104,19 +95,35 @@ export default function BottomTabNavigator({ usuario, onLogout }) {
       })}
     >
       <Tab.Screen name="Home" options={{ title: 'Inicio', tabBarLabel: 'Inicio' }}>
-        {(props) => <HomeScreen {...props} usuario={usuario} />}
+        {(props) => (
+          <TabScreenWrapper>
+            <HomeScreen {...props} usuario={usuario} />
+          </TabScreenWrapper>
+        )}
       </Tab.Screen>
 
       <Tab.Screen name="Movimientos" options={{ tabBarLabel: 'Movimientos', headerShown: false }}>
-        {(props) => <MovimientosStack {...props} usuario={usuario} />}
+        {(props) => (
+          <TabScreenWrapper>
+            <MovimientosStack {...props} usuario={usuario} />
+          </TabScreenWrapper>
+        )}
       </Tab.Screen>
 
       <Tab.Screen name="Agregar" options={{ title: 'Agregar Movimiento', tabBarLabel: 'Agregar' }}>
-        {(props) => <AddMovimientoScreen {...props} usuario={usuario} />}
+        {(props) => (
+          <TabScreenWrapper>
+            <AddMovimientoScreen {...props} usuario={usuario} />
+          </TabScreenWrapper>
+        )}
       </Tab.Screen>
 
       <Tab.Screen name="Profile" options={{ title: 'Perfil', tabBarLabel: 'Perfil' }}>
-        {(props) => <ProfileScreen {...props} usuario={usuario} onLogout={handleLogout} />}
+        {(props) => (
+          <TabScreenWrapper>
+            <ProfileScreen {...props} usuario={usuario} onLogout={handleLogout} />
+          </TabScreenWrapper>
+        )}
       </Tab.Screen>
     </Tab.Navigator>
   );

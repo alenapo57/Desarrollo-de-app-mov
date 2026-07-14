@@ -29,10 +29,14 @@ const request = async (endpoint, options = {}) => {
     headers,
   });
 
-  const data = await response.json();
+  // Algunas respuestas (ej: DELETE) vuelven con body vacío (204/200 sin
+  // contenido). Leer como texto primero evita que JSON.parse explote con
+  // "Unexpected end of input" cuando no hay nada que parsear.
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
 
   if (!response.ok) {
-    throw new Error(data.detail || 'Error en la solicitud.');
+    throw new Error(data?.detail || 'Error en la solicitud.');
   }
 
   return data;
