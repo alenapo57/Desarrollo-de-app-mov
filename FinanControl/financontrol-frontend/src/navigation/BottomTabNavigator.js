@@ -42,8 +42,7 @@ function MovimientosStack({ usuario }) {
           headerStyle: { backgroundColor: headerBg },
           headerTintColor: headerTint,
           headerTitleStyle: { fontWeight: 'bold' },
-          headerBackTitle: '',
-          headerBackTitleVisible: false,
+          headerBackButtonDisplayMode: 'minimal',
         }}
       />
     </Stack.Navigator>

@@ -4,9 +4,9 @@ App móvil de finanzas personales. Permite registrarse, iniciar sesión, cargar 
 
 ## Stack
 
-**Frontend** — React Native (Expo SDK 54), React Navigation (bottom tabs + stack), AsyncStorage para sesión.
+**Frontend** — React Native 0.88 (Expo SDK 58), React Navigation 7 (bottom tabs + stack), AsyncStorage para sesión.
 
-**Backend** — FastAPI, SQLAlchemy 2.x, PostgreSQL, autenticación JWT (`python-jose` + `passlib`/`bcrypt`).
+**Backend** — FastAPI, SQLAlchemy 2.x, PostgreSQL en [Neon](https://neon.com) (cloud), autenticación JWT (`python-jose` + `passlib`/`bcrypt`).
 
 ## Estructura
 
@@ -32,10 +32,10 @@ FinanControl/
 
 ## Requisitos previos
 
-- Node.js 18+ y npm
+- Node.js 22.13+ o 24.3+ (versiones pares; Expo SDK 58 no soporta 23 ni 25) y npm
 - Python 3.10+
-- PostgreSQL corriendo localmente (o accesible por red)
-- Expo Go (en tu celular) o un emulador Android/iOS
+- La connection string de la base en Neon (no hace falta instalar PostgreSQL)
+- Expo Go actualizado (en tu celular) o un emulador Android/iOS. El proyecto usa SDK 58: Expo Go de las tiendas solo soporta el SDK más reciente
 - Opcional: [ngrok](https://ngrok.com/) si vas a probar desde un dispositivo físico sin estar en la misma red que el backend
 
 ## Clonar el repo
@@ -60,13 +60,7 @@ venv\Scripts\activate          # Windows
 pip install -r requirements.txt
 ```
 
-Creá la base de datos en Postgres (el nombre debe coincidir con el de tu `DATABASE_URL`):
-
-```sql
-CREATE DATABASE financontrol;
-```
-
-Copiá `.env.example` a `.env` y completá tus valores:
+Copiá `.env.example` a `.env` y completá tus valores. La base de datos está en Neon, así que no hace falta crear nada local: pegá la connection string del proyecto (panel de Neon → **Connect**) en `DATABASE_URL`. Todas las PCs que usen esa misma URL comparten los mismos datos.
 
 ```bash
 copy .env.example .env    # Windows
@@ -75,7 +69,7 @@ copy .env.example .env    # Windows
 
 | Variable                        | Descripción                                                                                                                                               |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                | Cadena de conexión a Postgres, formato`postgresql://usuario:password@host:5432/financontrol`                                                            |
+| `DATABASE_URL`                | Connection string de Neon, formato `postgresql://usuario:password@ep-xxxx.aws.neon.tech/neondb?sslmode=require&channel_binding=require`             |
 | `SECRET_KEY`                  | Clave para firmar los JWT. Generarla con`python -c "import secrets; print(secrets.token_hex(32))"` — nunca reutilizar la de otro entorno ni commitearla |
 | `ALGORITHM`                   | Algoritmo de firma JWT (`HS256`)                                                                                                                         |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Minutos de validez del token (10080 = 7 días)                                                                                                             |
@@ -92,19 +86,55 @@ La API queda en `http://localhost:8000`. Documentación interactiva (Swagger) en
 
 ```bash
 cd financontrol-frontend
-npm install --legacy-peer-deps
+npm install
 ```
 
-Editá `src/services/api.js` y apuntá `BASE_URL` a tu backend:
-
-- Misma red Wi-Fi que el celular/emulador: IP local de tu PC, ej. `http://192.168.101.5:8000`
-- Dispositivo físico sin estar en la misma red: URL de un túnel `ngrok http 8000` (recordá que la URL gratuita cambia cada vez que reiniciás ngrok)
+No hace falta configurar la URL del backend: `src/services/api.js` toma automáticamente la IP de la PC que está corriendo Expo y le agrega el puerto `8000`. Solo tienen que estar el celular y la PC en la misma red.
 
 Iniciar la app:
 
 ```bash
 npx expo start --clear
 ```
+
+## Compartir la app para que otros la prueben (túnel)
+
+Para que otras personas escaneen el QR desde **cualquier red**, hacen falta dos túneles públicos, porque sus celulares no llegan a tu IP local:
+
+| Qué se expone | Herramienta | URL |
+| --- | --- | --- |
+| La app (Metro) | Túnel propio de Expo (`--tunnel`) | `https://xxxx.on.expo.app` (la muestra el QR) |
+| El backend (puerto 8000) | [ngrok](https://ngrok.com/) | Tu dominio fijo de ngrok, ej. `https://tu-dominio.ngrok-free.dev` |
+
+**Configuración (una sola vez):**
+
+1. Instalá ngrok y cargá tu token (`ngrok config add-authtoken <token>`, el token está en el panel de ngrok). El plan gratuito trae un dominio fijo que no cambia entre reinicios.
+2. Creá `financontrol-frontend/.env.local` (está en el `.gitignore`) con la URL pública del backend:
+
+   ```
+   EXPO_PUBLIC_API_URL=https://tu-dominio.ngrok-free.dev
+   ```
+
+   Esta variable solo se usa en modo túnel: en la red local la app sigue usando la IP de la PC.
+
+**Cada vez que quieras compartirla**, en tres terminales parado en `FinanControl/`:
+
+```powershell
+# 1) Backend
+cd financontrol-backend
+.\venv\Scripts\python.exe -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# 2) Túnel del backend (si ngrok no está en el PATH, usá la ruta completa: & "$env:LOCALAPPDATA\ngrok\ngrok.exe" http 8000)
+ngrok http 8000
+
+# 3) App con túnel
+cd financontrol-frontend
+npx expo start --tunnel --clear
+```
+
+Pasales el QR de la terminal 3. Necesitan **Expo Go actualizado** (SDK 58): en iPhone se escanea con la cámara y en Android desde la app Expo Go.
+
+Mientras tengan que probar, tu PC tiene que quedar prendida con las tres terminales abiertas. Si cerrás cualquiera, la app deja de andar para todos.
 
 ## Funcionalidades
 
@@ -119,12 +149,15 @@ npx expo start --clear
 ## Notas de seguridad
 
 - `.env` está en `.gitignore` — nunca commitear credenciales reales. Usar `.env.example` como referencia.
-- El plan gratuito de ngrok genera una URL nueva cada vez que se reinicia el túnel; hay que actualizar `BASE_URL` en el frontend cuando eso pase.
+- El `.env` del backend tiene la contraseña de Neon: pasalo a otra PC por un medio privado, nunca por el repo.
+- Con los túneles levantados, la API y la app son **públicas**: cualquiera con la URL puede registrarse y cargar datos en la base de Neon. Cerrá los túneles cuando terminen las pruebas.
 
 ## Problemas comunes
 
-**"JSON Parse error: Unexpected character" al loguearse** — el `BASE_URL` de `src/services/api.js` apunta a un backend que no está corriendo o a un túnel de ngrok caído. Verificá que `uvicorn` esté levantado y, si usás ngrok, que la URL en `api.js` sea la actual (cambia cada vez que se reinicia el túnel gratuito).
+**"JSON Parse error: Unexpected character" al loguearse** — la app llega a algo que no es el backend. En la red local: `uvicorn` no está levantado. En modo túnel: además, que `ngrok http 8000` esté corriendo y que `EXPO_PUBLIC_API_URL` en `.env.local` sea tu dominio de ngrok (reiniciá Expo con `--clear` si lo cambiaste).
 
-**El backend no arranca / error de conexión a la base** — confirmá que Postgres esté corriendo y que la base indicada en `DATABASE_URL` exista (`CREATE DATABASE financontrol;`). Las tablas se crean solas al levantar `uvicorn`, pero la base en sí no.
+**El backend no arranca / error de conexión a la base** — revisá que `DATABASE_URL` en `.env` sea la connection string completa de Neon (con `?sslmode=require`). Las tablas se crean solas al levantar `uvicorn`.
 
-**La app no encuentra el backend desde el celular** — si el celular y la PC no están en la misma red Wi-Fi, `http://192.168.x.x` no va a funcionar; usá un túnel de ngrok en su lugar.
+**La primera request tarda unos segundos** — es normal: Neon suspende la base cuando no se usa y la despierta con la primera conexión.
+
+**La app no encuentra el backend desde el celular** — el celular y la PC tienen que estar en la misma red Wi-Fi, y el firewall de Windows tiene que permitir conexiones entrantes a Python en el puerto 8000. Si no están en la misma red, usá el modo túnel (ver "Compartir la app para que otros la prueben").

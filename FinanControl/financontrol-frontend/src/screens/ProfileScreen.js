@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { useTheme } from '../theme/ThemeContext';
 import { formatCurrency } from '../utils/helpers';
 import { getResumenFinanciero } from '../services/movimientoService';
@@ -12,6 +13,17 @@ import { updateFotoPerfil, updateNombre } from '../services/authService';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import DarkModeToggle from '../components/DarkModeToggle';
+
+const FOTO_TAMANIO = 300; // px: suficiente para un avatar y liviano para guardar en la base
+
+// Achica la foto y la convierte en un "data URI" (la imagen entera como texto base64).
+// Así la foto se guarda en la base de datos y se ve desde cualquier dispositivo,
+// en vez de guardar solo la ruta del archivo dentro de este celular.
+async function fotoADataUri(uri) {
+  const imagen = await ImageManipulator.manipulate(uri).resize({ width: FOTO_TAMANIO }).renderAsync();
+  const resultado = await imagen.saveAsync({ format: SaveFormat.JPEG, compress: 0.7, base64: true });
+  return `data:image/jpeg;base64,${resultado.base64}`;
+}
 
 function ProfileOption({ icon, label, sublabel, onPress, color, showArrow = true, colors, styles }) {
   return (
@@ -65,6 +77,28 @@ export default function ProfileScreen({ navigation, usuario, onLogout }) {
     else Alert.alert('Error', result.error || 'No se pudo actualizar el nombre.');
   };
 
+  // Muestra la foto nueva al instante y la guarda en el backend.
+  // Si el guardado falla, vuelve a mostrar la foto anterior y avisa.
+  const guardarFoto = async (nuevaFoto) => {
+    const fotoAnterior = fotoPerfil;
+    setFotoPerfil(nuevaFoto);
+    const result = await updateFotoPerfil(nuevaFoto);
+    if (!result.success) {
+      setFotoPerfil(fotoAnterior);
+      Alert.alert('Error', 'No se pudo guardar la foto. Intentá de nuevo.');
+    }
+  };
+
+  const procesarFotoElegida = async (result) => {
+    if (result.canceled) return;
+    try {
+      const dataUri = await fotoADataUri(result.assets[0].uri);
+      await guardarFoto(dataUri);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo procesar la foto.');
+    }
+  };
+
   const handlePickImage = async () => {
     Alert.alert('Foto de Perfil', '¿Qué querés hacer?', [
       { text: 'Cancelar', style: 'cancel' },
@@ -73,8 +107,8 @@ export default function ProfileScreen({ navigation, usuario, onLogout }) {
         onPress: async () => {
           const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
           if (!permission.granted) { Alert.alert('Permiso denegado', 'Necesitamos acceso a tu galería.'); return; }
-          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 });
-          if (!result.canceled) { const uri = result.assets[0].uri; setFotoPerfil(uri); await updateFotoPerfil(uri); }
+          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+          await procesarFotoElegida(result);
         },
       },
       {
@@ -83,10 +117,10 @@ export default function ProfileScreen({ navigation, usuario, onLogout }) {
           const permission = await ImagePicker.requestCameraPermissionsAsync();
           if (!permission.granted) { Alert.alert('Permiso denegado', 'Necesitamos acceso a tu cámara.'); return; }
           const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.7 });
-          if (!result.canceled) { const uri = result.assets[0].uri; setFotoPerfil(uri); await updateFotoPerfil(uri); }
+          await procesarFotoElegida(result);
         },
       },
-      fotoPerfil ? { text: 'Eliminar foto', style: 'destructive', onPress: async () => { setFotoPerfil(null); await updateFotoPerfil(null); } } : null,
+      fotoPerfil ? { text: 'Eliminar foto', style: 'destructive', onPress: () => guardarFoto(null) } : null,
     ].filter(Boolean));
   };
 

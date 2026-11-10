@@ -1,9 +1,22 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
-// Reemplaza con la URL de tu servidor local
-//const BASE_URL = 'http://192.168.101.5:8000'; 
-// Reemplaza con tu URL de ngrok (ej: https://xxxx-xxx-xxx.ngrok.app)
-const BASE_URL = 'https://flypaper-deport-overcome.ngrok-free.dev';
+const API_PORT = 8000;
+
+// En desarrollo, Expo sabe desde dónde se sirve la app (hostUri):
+//  - `npx expo start`          → "192.168.x.x:8081" (IP de la PC en la red local)
+//  - `npx expo start --tunnel` → "xxxx.exp.direct"  (dirección pública del túnel de Expo)
+const devHost = Constants.expoConfig?.hostUri?.split(':')[0];
+const esIpLocal = /^\d{1,3}(\.\d{1,3}){3}$/.test(devHost ?? '');
+
+// Red local: el backend corre en la misma PC que Metro, así que usamos esa IP
+// (es lo más rápido y funciona en cualquier PC sin editar nada).
+// Túnel: los celulares de otras personas no llegan a tu IP local, así que usamos
+// la URL pública del backend (túnel de ngrok), definida en EXPO_PUBLIC_API_URL
+// dentro de financontrol-frontend/.env.local (está en el .gitignore).
+const BASE_URL = esIpLocal
+  ? `http://${devHost}:${API_PORT}`
+  : process.env.EXPO_PUBLIC_API_URL || `http://localhost:${API_PORT}`;
 
 /**
  * Cliente HTTP centralizado para FinanControl API.
@@ -20,6 +33,9 @@ const request = async (endpoint, options = {}) => {
 
   const headers = {
     'Content-Type': 'application/json',
+    // ngrok gratis puede responder con una página HTML de advertencia en vez de
+    // pasar el pedido a la API; este header le indica que la saltee.
+    'ngrok-skip-browser-warning': 'true',
     ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers,
   };
